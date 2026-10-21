@@ -8,141 +8,357 @@
 <title>訪問アラーム設定</title>
 <style>
 @import url("https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700;900&display=swap");
+
 *{box-sizing:border-box}
 body{margin:0;background:#10243f;color:#17253b}
-html,body,body *,button,select,option,input,label{font-family:'Zen Maru Gothic','Hiragino Maru Gothic ProN','ヒラギノ丸ゴ ProN',sans-serif!important}
-.wrap{max-width:800px;margin:auto;padding:14px 12px calc(20px + env(safe-area-inset-bottom))}
-h1{font-size:22px;margin:5px 0 4px;text-align:center;color:#fff}
-.sub{font-size:12px;color:#e1eaf5;margin-bottom:12px;text-align:center}
-.panel{background:white;border-radius:16px;padding:12px;box-shadow:0 2px 12px #18263c0c;margin-bottom:12px}
-.top{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.top-controls{display:flex;align-items:center;gap:7px;min-width:0}
-.top-run{border:0;border-radius:9px;padding:10px 9px;background:#1465c8;color:white;font-weight:800;font-size:12px;white-space:nowrap;cursor:pointer}
-.top-run:disabled{background:#a7b6c9;cursor:default}
-.lead{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700}
-select{font:inherit;border:1px solid #c8d4e4;background:white;border-radius:9px;padding:8px 12px;color:#152d4b}
-.columns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-.column{min-width:0;border:1px solid #dce5f0;border-radius:12px;overflow:hidden;background:white}
-.head{background:#e9f0fa;padding:9px 5px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:12px;font-weight:800;white-space:nowrap;letter-spacing:-.5px;min-height:49px}
-.times{height:min(50vh,440px);overflow-y:auto;overscroll-behavior:contain;padding:6px;display:flex;flex-direction:column;gap:6px}
-.time{border:1px solid #d5dfeb;background:#fff;color:#1d3653;border-radius:9px;padding:12px 0;min-height:43px;font-size:16px;font-weight:700;cursor:pointer;touch-action:manipulation}
-.time[aria-pressed=true]{background:#1765c1;border-color:#1765c1;color:#fff;box-shadow:0 2px 6px #1765c133}
-.summary{font-size:13px;line-height:1.65;color:#344860;max-height:145px;overflow:auto;white-space:pre-wrap}
+html,body,body *,button,select,option,input,label{
+  font-family:'Zen Maru Gothic','Hiragino Maru Gothic ProN','ヒラギノ丸ゴ ProN',sans-serif!important;
+}
+.wrap{
+  max-width:800px;
+  margin:auto;
+  padding:14px 12px calc(20px + env(safe-area-inset-bottom));
+}
+h1{
+  font-size:22px;
+  margin:5px 0 4px;
+  text-align:center;
+  color:#fff;
+}
+.sub{
+  font-size:12px;
+  color:#e1eaf5;
+  margin-bottom:12px;
+  text-align:center;
+}
+.panel{
+  background:white;
+  border-radius:16px;
+  padding:12px;
+  box-shadow:0 2px 12px #18263c0c;
+  margin-bottom:12px;
+}
+.top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+}
+.top-controls{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  min-width:0;
+}
+.top-run{
+  border:0;
+  border-radius:9px;
+  padding:10px 9px;
+  background:#1465c8;
+  color:white;
+  font-weight:800;
+  font-size:12px;
+  white-space:nowrap;
+  cursor:pointer;
+}
+.top-run:disabled{
+  background:#a7b6c9;
+  cursor:default;
+}
+.lead{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:14px;
+  font-weight:700;
+}
+select{
+  font:inherit;
+  border:1px solid #c8d4e4;
+  background:white;
+  border-radius:9px;
+  padding:8px 12px;
+  color:#152d4b;
+}
+.columns{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:8px;
+}
+.column{
+  min-width:0;
+  border:1px solid #dce5f0;
+  border-radius:12px;
+  overflow:hidden;
+  background:white;
+}
+.head{
+  background:#e9f0fa;
+  padding:9px 5px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  font-size:12px;
+  font-weight:800;
+  white-space:nowrap;
+  letter-spacing:-.5px;
+  min-height:49px;
+}
+.times{
+  height:min(50vh,440px);
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  padding:6px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.time{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
+  border:1px solid #d5dfeb;
+  background:#fff;
+  color:#1d3653;
+  border-radius:9px;
+  padding:12px 0;
+  min-height:43px;
+  font-size:16px;
+  font-weight:700;
+  cursor:pointer;
+  touch-action:manipulation;
+}
+.time[aria-pressed=true]{
+  background:#1765c1;
+  border-color:#1765c1;
+  color:#fff;
+  box-shadow:0 2px 6px #1765c133;
+}
+.summary{
+  font-size:13px;
+  line-height:1.65;
+  color:#344860;
+  max-height:145px;
+  overflow:auto;
+  white-space:pre-wrap;
+}
 .muted{color:#7a899c}
-.secondary{border:1px solid #c7d2e2;background:white;border-radius:12px;padding:10px 13px;font-weight:700;color:#43556c}
-.note{font-size:12px;color:#d3dfed;line-height:1.6;margin-top:10px}
-.warn{font-size:12px;color:#9b4d0b;margin-top:6px}
-.pill{background:#eaf2ff;color:#1757a7;padding:4px 8px;border-radius:99px;font-size:12px;font-weight:700}
+.secondary{
+  border:1px solid #c7d2e2;
+  background:white;
+  border-radius:12px;
+  padding:10px 13px;
+  font-weight:700;
+  color:#43556c;
+}
+.note{
+  font-size:12px;
+  color:#d3dfed;
+  line-height:1.6;
+  margin-top:10px;
+}
+.warn{
+  font-size:12px;
+  color:#9b4d0b;
+  margin-top:6px;
+}
+.pill{
+  background:#eaf2ff;
+  color:#1757a7;
+  padding:4px 8px;
+  border-radius:99px;
+  font-size:12px;
+  font-weight:700;
+}
 @media(max-width:360px){
-.wrap{padding:10px 7px}
-.columns{gap:5px}
-.head{font-size:11px;padding:8px 3px}
-.top-run{font-size:11px;padding:9px 6px}
-.pill{padding:4px 6px;font-size:11px}
-.times{padding:4px;gap:5px}
-.time{font-size:14px;padding:11px 0}
+  .wrap{padding:10px 7px}
+  .columns{gap:5px}
+  .head{font-size:11px;padding:8px 3px}
+  .top-run{font-size:11px;padding:9px 6px}
+  .pill{padding:4px 6px;font-size:11px}
+  .times{padding:4px;gap:5px}
+  .time{font-size:14px;padding:11px 0}
 }
 </style>
 </head>
 <body>
 <main class="wrap">
+
 <h1>訪問アラーム設定</h1>
 <div class="sub">開始時刻をタップして複数選択できます</div>
+
 <section class="panel top">
-<label class="lead">終了前の通知
-<select id="lead">
-<option value="1">1分前</option>
-<option value="2">2分前</option>
-<option value="3" selected>3分前</option>
-<option value="4">4分前</option>
-<option value="5">5分前</option>
-</select>
-</label>
-<div class="top-controls">
-<button class="top-run" id="run" disabled>アラームON</button>
-<span class="pill" id="count">0件選択</span>
-</div>
+  <label class="lead">
+    終了前の通知
+    <select id="lead">
+      <option value="1">1分前</option>
+      <option value="2">2分前</option>
+      <option value="3" selected>3分前</option>
+      <option value="4">4分前</option>
+      <option value="5">5分前</option>
+    </select>
+  </label>
+  <div class="top-controls">
+    <button class="top-run" id="run" disabled>アラームON</button>
+    <span class="pill" id="count">0件選択</span>
+  </div>
 </section>
+
 <section class="columns" id="cols"></section>
+
 <section class="panel" style="margin-top:12px">
-<div class="top" style="margin-bottom:9px">
-<strong style="font-size:15px">選択内容</strong>
-<button class="secondary" id="clear">すべて解除</button>
-</div>
-<div class="summary muted" id="summary">時刻を選択してください</div>
-<div class="warn" id="warning"></div>
+  <div class="top" style="margin-bottom:9px">
+    <strong style="font-size:15px">選択内容</strong>
+    <button class="secondary" id="clear">すべて解除</button>
+  </div>
+  <div class="summary muted" id="summary">時刻を選択してください</div>
+  <div class="warn" id="warning"></div>
 </section>
-<div class="note">開始時刻と終了前の時刻を、iPhoneの既存アラームから探してONにします。時計アプリに該当時刻のアラームがない場合、その時刻はONにできません。ショートカット「訪問アラーム設定」が必要です。</div>
+
+<div class="note">
+開始時刻と終了前の時刻を、iPhoneの既存アラームから探してONにします。
+時計アプリに該当時刻のアラームがない場合、その時刻はONにできません。
+ショートカット「訪問アラーム設定」が必要です。
+</div>
+
 </main>
+
 <script>
 const groups=[
-{name:'身01',duration:14,times:'1:00,1:15,1:30,1:45,2:00,2:15,4:30,4:45,5:00,5:15,5:30,5:45,6:00,6:15,6:30,6:45,7:00,7:15,7:30,7:45,8:15,8:30,8:45,9:00,9:15,9:30,9:45,10:00,10:15,10:30,10:45,11:00,11:15,11:30,11:45,12:30,12:45,13:00,13:15,13:30,13:45,14:00,14:15,14:30,14:45,15:00,15:15,15:30,15:45,16:00,16:15,16:30,16:45,17:30,17:45,18:00,18:15,18:30,18:45,19:00,19:15,19:30,19:45,20:00,20:15,20:30,20:45,21:00,21:15,21:30,21:45,22:00,22:15,22:30,22:45,23:00,23:15,23:30,23:45'.split(',')},
-{name:'身１・生活２',duration:29,times:'9:00,9:30,10:00,10:30,13:00,13:30,14:00,14:30,15:00,15:30'.split(',')},
-{name:'身2生1',duration:59,times:'9:00,10:00,11:00,13:00,14:00,15:00'.split(',')}
+  {
+    name:'身01',
+    duration:14,
+    times:'1:00,1:15,1:30,1:45,2:00,2:15,4:30,4:45,5:00,5:15,5:30,5:45,6:00,6:15,6:30,6:45,7:00,7:15,7:30,7:45,8:15,8:30,8:45,9:00,9:15,9:30,9:45,10:00,10:15,10:30,10:45,11:00,11:15,11:30,11:45,12:30,12:45,13:00,13:15,13:30,13:45,14:00,14:15,14:30,14:45,15:00,15:15,15:30,15:45,16:00,16:15,16:30,16:45,17:30,17:45,18:00,18:15,18:30,18:45,19:00,19:15,19:30,19:45,20:00,20:15,20:30,20:45,21:00,21:15,21:30,21:45,22:00,22:15,22:30,22:45,23:00,23:15,23:30,23:45'.split(',')
+  },
+  {
+    name:'身１・生活２',
+    duration:29,
+    times:'9:00,9:30,10:00,10:30,13:00,13:30,14:00,14:30,15:00,15:30'.split(',')
+  },
+  {
+    name:'身2生1',
+    duration:59,
+    times:'9:00,10:00,11:00,13:00,14:00,15:00'.split(',')
+  }
 ];
+
 const chosen=new Set();
 const cols=document.getElementById('cols');
 const lead=document.getElementById('lead');
-const fmt=m=>`${String(Math.floor(((m%1440)+1440)%1440/60)).padStart(2,'0')}:${String(((m%60)+60)%60).padStart(2,'0')}`;
-const mins=s=>{let [h,m]=s.split(':').map(Number);return h*60+m};
+
+const fmt=m=>{
+  let v=((m%1440)+1440)%1440;
+  return String(Math.floor(v/60)).padStart(2,'0')+
+    ':'+String(v%60).padStart(2,'0');
+};
+
+const mins=s=>{
+  let [h,m]=s.split(':').map(Number);
+  return h*60+m;
+};
+
 groups.forEach((g,gi)=>{
-let col=document.createElement('div');
-col.className='column';
-let head=document.createElement('div');
-head.className='head';
-head.textContent=g.name;
-col.append(head);
-let times=document.createElement('div');
-times.className='times';
-g.times.forEach(t=>{
-let b=document.createElement('button');
-b.className='time';
-b.type='button';
-b.textContent=t;
-b.setAttribute('aria-pressed','false');
-b.onclick=()=>{
-let k=gi+'|'+t;
-if(chosen.has(k))chosen.delete(k);
-else chosen.add(k);
-b.setAttribute('aria-pressed',String(chosen.has(k)));
-update()
-};
-times.append(b)
+  let col=document.createElement('div');
+  col.className='column';
+
+  let head=document.createElement('div');
+  head.className='head';
+  head.textContent=g.name;
+  col.append(head);
+
+  let times=document.createElement('div');
+  times.className='times';
+
+  g.times.forEach(t=>{
+    let b=document.createElement('button');
+    b.className='time';
+    b.type='button';
+    b.textContent=t;
+    b.setAttribute('aria-pressed','false');
+
+    b.onclick=()=>{
+      let k=gi+'|'+t;
+      if(chosen.has(k)){
+        chosen.delete(k);
+      }else{
+        chosen.add(k);
+      }
+      b.setAttribute('aria-pressed',String(chosen.has(k)));
+      update();
+    };
+
+    times.append(b);
+  });
+
+  col.append(times);
+  cols.append(col);
 });
-col.append(times);
-cols.append(col)
-});
+
 function selection(){
-return [...chosen].map(k=>{
-let [i,t]=k.split('|');
-let g=groups[+i];
-return {group:g.name,start:t,startMinutes:mins(t),end:fmt(mins(t)+g.duration-(Number(lead.value)-1)),duration:g.duration}
-}).sort((a,b)=>a.startMinutes-b.startMinutes||a.group.localeCompare(b.group,'ja'))
+  return [...chosen].map(k=>{
+    let [i,t]=k.split('|');
+    let g=groups[+i];
+    return {
+      group:g.name,
+      start:t,
+      startMinutes:mins(t),
+      end:fmt(mins(t)+g.duration-(Number(lead.value)-1)),
+      duration:g.duration
+    };
+  }).sort((a,b)=>
+    a.startMinutes-b.startMinutes||
+    a.group.localeCompare(b.group,'ja')
+  );
 }
+
 function update(){
-let s=selection();
-document.getElementById('count').textContent=s.length+'件選択';
-document.getElementById('run').disabled=!s.length;
-let summary=document.getElementById('summary');
-summary.classList.toggle('muted',!s.length);
-summary.textContent=s.length?s.map(x=>`${x.group}　${x.start} → ${x.end}`).join('\n'):'時刻を選択してください';
-let all=s.flatMap(x=>[fmt(x.startMinutes),x.end]);
-let unique=new Set(all);
-document.getElementById('warning').textContent=unique.size<all.length?`※同じ時刻のアラームは重複を除いてONにします（${unique.size}時刻）。`:''
+  let s=selection();
+
+  document.getElementById('count').textContent=s.length+'件選択';
+  document.getElementById('run').disabled=!s.length;
+
+  let summary=document.getElementById('summary');
+  summary.classList.toggle('muted',!s.length);
+  summary.textContent=s.length
+    ?s.map(x=>`${x.group}　${x.start} → ${x.end}`).join('\n')
+    :'時刻を選択してください';
+
+  let all=s.flatMap(x=>[fmt(x.startMinutes),x.end]);
+  let unique=new Set(all);
+
+  document.getElementById('warning').textContent=
+    unique.size<all.length
+    ?`※同じ時刻のアラームは重複を除いてONにします（${unique.size}時刻）。`
+    :'';
 }
+
 lead.onchange=update;
+
 document.getElementById('clear').onclick=()=>{
-chosen.clear();
-document.querySelectorAll('.time[aria-pressed=true]').forEach(b=>b.setAttribute('aria-pressed','false'));
-update()
+  chosen.clear();
+  document.querySelectorAll('.time[aria-pressed=true]')
+    .forEach(b=>b.setAttribute('aria-pressed','false'));
+  update();
 };
+
 document.getElementById('run').onclick=()=>{
-let s=selection();
-if(!s.length)return;
-let times=[...new Set(s.flatMap(x=>[fmt(x.startMinutes),x.end]))];
-let url='shortcuts://run-shortcut?name='+encodeURIComponent('訪問アラーム設定')+'&input=text&text='+encodeURIComponent(times.join('\n'));
-location.href=url
+  let s=selection();
+  if(!s.length)return;
+
+  let times=[...new Set(
+    s.flatMap(x=>[fmt(x.startMinutes),x.end])
+  )];
+
+  let url='shortcuts://run-shortcut?name='+
+    encodeURIComponent('訪問アラーム設定')+
+    '&input=text&text='+
+    encodeURIComponent(times.join('\n'));
+
+  location.href=url;
 };
+
 update();
 </script>
 </body>

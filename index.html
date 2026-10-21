@@ -1,138 +1,40 @@
-rules_version = '2';
-service cloud.firestore {
- match /databases/{database}/documents {
-  function signedIn() { return request.auth != null; }
-  function child() { return signedIn() && request.auth.uid == '6XCdcBW1MxgaYgi2xXcZg3DGoas1'; }
-  function parent() { return signedIn() && request.auth.uid in ['cNQE2WSHARfRUsxB0T78wiBtD9d2','pkdwX68z49QJpqFPCdJHLHeAZEG2']; }
-  function family() { return child() || parent(); }
-  function mp(id) { return /databases/$(database)/documents/missions/$(id); }
-  function rp(id) { return /databases/$(database)/documents/requests/$(id); }
-  function lp(id) { return /databases/$(database)/documents/ledger/$(id); }
-  function cp(id) { return /databases/$(database)/documents/claimCounters/$(id); }
-  // Japan-local calendar day. 1970-01-01 was Thursday (4).
-  function localTime() { return request.time + duration.value(9, 'h'); }
-  function dayKey() {
-    return string(localTime().year()) + '-' + string(localTime().month()) + '-' + string(localTime().day());
-  }
-  // Firestore Timestamp.dayOfWeek(): Sunday=1, ... Saturday=7.
-  function weekday() { return localTime().dayOfWeek() - 1; }
-  function counterId(missionId, scheduleType) {
-    return scheduleType == 'once' ? missionId + '_once' : missionId + '_' + dayKey();
-  }
-  function eligible(m) {
-    return m.active == true &&
-      (m.scheduleType != 'weekdays' || weekday() in m.weekdays);
-  }
-  function limit(m) { return m.scheduleType == 'once' ? 1 : m.dailyLimit; }
-  function validRequest(id, d) {
-    return d.keys().hasOnly(['missionId','childUid','status','createdAt','snapshotTitle','snapshotYen','claimDay','claimDayNumber','counterId','slot'])
-      && d.keys().hasAll(['missionId','childUid','status','createdAt','snapshotTitle','snapshotYen','claimDay','claimDayNumber','counterId','slot'])
-      && d.childUid == request.auth.uid && d.status == 'pending'
-      && d.createdAt == request.time
-      && d.missionId is string && d.missionId.size() > 0 && d.missionId.size() <= 128
-      && exists(mp(d.missionId)) && eligible(get(mp(d.missionId)).data)
-      && d.snapshotTitle == get(mp(d.missionId)).data.title
-      && d.snapshotYen == get(mp(d.missionId)).data.yen
-      && d.claimDayNumber is int
-      && d.claimDay == dayKey()
-      && d.counterId == counterId(d.missionId, get(mp(d.missionId)).data.scheduleType)
-      && d.slot is int && d.slot >= 1 && d.slot <= limit(get(mp(d.missionId)).data)
-      && id == d.counterId + '_' + string(d.slot)
-      && getAfter(cp(d.counterId)).data.count == d.slot
-      && getAfter(cp(d.counterId)).data.lastRequestId == id;
-  }
-  match /missions/{id} {
-   allow read: if family();
-   allow create: if parent()
-    && request.resource.data.keys().hasOnly(['title','yen','scheduleType','weekdays','dailyLimit','active','createdAt','updatedAt','createdBy'])
-    && request.resource.data.keys().hasAll(['title','yen','scheduleType','weekdays','dailyLimit','active','createdAt','updatedAt','createdBy'])
-    && request.resource.data.title is string && request.resource.data.title.size() > 0 && request.resource.data.title.size() <= 80
-    && request.resource.data.yen is int && request.resource.data.yen >= 0 && request.resource.data.yen <= 100000
-    && request.resource.data.scheduleType in ['daily','weekdays','once','special']
-    && request.resource.data.weekdays is list && request.resource.data.weekdays.size() <= 7
-    && request.resource.data.weekdays.hasOnly([0,1,2,3,4,5,6])
-    && (request.resource.data.scheduleType != 'weekdays' || request.resource.data.weekdays.size() > 0)
-    && request.resource.data.dailyLimit is int && request.resource.data.dailyLimit >= 1 && request.resource.data.dailyLimit <= 10
-    && request.resource.data.active == true && request.resource.data.createdBy == request.auth.uid
-    && request.resource.data.createdAt == request.time && request.resource.data.updatedAt == request.time;
-   allow update: if parent() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title','yen','scheduleType','weekdays','dailyLimit','active','updatedAt'])
-    && request.resource.data.title is string && request.resource.data.title.size() > 0 && request.resource.data.title.size() <= 80
-    && request.resource.data.yen is int && request.resource.data.yen >= 0 && request.resource.data.yen <= 100000
-    && request.resource.data.scheduleType in ['daily','weekdays','once','special']
-    && request.resource.data.weekdays is list && request.resource.data.weekdays.size() <= 7
-    && request.resource.data.weekdays.hasOnly([0,1,2,3,4,5,6])
-    && (request.resource.data.scheduleType != 'weekdays' || request.resource.data.weekdays.size() > 0)
-    && request.resource.data.dailyLimit is int && request.resource.data.dailyLimit >= 1 && request.resource.data.dailyLimit <= 10
-    && request.resource.data.active is bool && request.resource.data.updatedAt == request.time;
-   allow delete: if false;
-  }
-  match /claimCounters/{id} {
-   allow read: if family();
-   allow create: if child()
-    && request.resource.data.keys().hasOnly(['missionId','childUid','dayNumber','count','lastRequestId'])
-    && request.resource.data.keys().hasAll(['missionId','childUid','dayNumber','count','lastRequestId'])
-    && request.resource.data.childUid == request.auth.uid
-    && request.resource.data.missionId is string && exists(mp(request.resource.data.missionId))
-    && request.resource.data.dayNumber is int
-    && id == counterId(request.resource.data.missionId, get(mp(request.resource.data.missionId)).data.scheduleType)
-    && eligible(get(mp(request.resource.data.missionId)).data)
-    && request.resource.data.count is int
-    && request.resource.data.count >= 1
-    && request.resource.data.count <= limit(get(mp(request.resource.data.missionId)).data)
-    && request.resource.data.lastRequestId == id + '_' + string(request.resource.data.count)
-    && getAfter(rp(request.resource.data.lastRequestId)).data.childUid == request.auth.uid
-    && getAfter(rp(request.resource.data.lastRequestId)).data.missionId == request.resource.data.missionId
-    && getAfter(rp(request.resource.data.lastRequestId)).data.counterId == id
-    && getAfter(rp(request.resource.data.lastRequestId)).data.slot == request.resource.data.count
-    && request.resource.data.count == 1;
-   allow update: if child()
-    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['count','lastRequestId'])
-    && request.resource.data.count == resource.data.count + 1
-    && request.resource.data.count <= limit(get(mp(resource.data.missionId)).data)
-    && eligible(get(mp(resource.data.missionId)).data)
-    && id == counterId(resource.data.missionId, get(mp(resource.data.missionId)).data.scheduleType)
-    && request.resource.data.lastRequestId == id + '_' + string(request.resource.data.count)
-    && getAfter(rp(request.resource.data.lastRequestId)).data.childUid == request.auth.uid
-    && getAfter(rp(request.resource.data.lastRequestId)).data.missionId == resource.data.missionId
-    && getAfter(rp(request.resource.data.lastRequestId)).data.counterId == id
-    && getAfter(rp(request.resource.data.lastRequestId)).data.slot == request.resource.data.count;
-   allow delete: if false;
-  }
-  match /requests/{id} {
-   allow read: if family();
-   allow create: if child() && validRequest(id, request.resource.data);
-   allow update: if parent() && resource.data.status == 'pending'
-    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','reviewedAt','reviewedBy'])
-    && request.resource.data.keys().hasAll(['missionId','childUid','status','createdAt','snapshotTitle','snapshotYen','reviewedAt','reviewedBy'])
-    && request.resource.data.reviewedBy == request.auth.uid && request.resource.data.reviewedAt == request.time
-    && (request.resource.data.status == 'rejected' || (request.resource.data.status == 'approved'
-      && getAfter(lp(id)).data.requestId == id
-      && getAfter(lp(id)).data.missionId == resource.data.missionId
-      && getAfter(lp(id)).data.title == resource.data.snapshotTitle
-      && getAfter(lp(id)).data.yen == resource.data.snapshotYen
-      && getAfter(lp(id)).data.createdBy == request.auth.uid
-      && getAfter(lp(id)).data.createdAt == request.time));
-   allow delete: if false;
-  }
-  match /ledger/{id} {
-   allow read: if family();
-   allow create: if parent()
-    && request.resource.data.keys().hasOnly(['type','requestId','missionId','title','yen','createdAt','createdBy'])
-    && request.resource.data.keys().hasAll(['type','requestId','missionId','title','yen','createdAt','createdBy'])
-    && request.resource.data.type == 'mission' && request.resource.data.requestId == id
-    && request.resource.data.missionId is string
-    && request.resource.data.title is string && request.resource.data.title.size() > 0 && request.resource.data.title.size() <= 80
-    && request.resource.data.yen is int && request.resource.data.yen >= 0 && request.resource.data.yen <= 100000
-    && request.resource.data.createdBy == request.auth.uid && request.resource.data.createdAt == request.time
-    && exists(rp(id)) && get(rp(id)).data.status == 'pending'
-    && get(rp(id)).data.missionId == request.resource.data.missionId
-    && getAfter(rp(id)).data.status == 'approved'
-    && getAfter(rp(id)).data.reviewedBy == request.auth.uid
-    && getAfter(rp(id)).data.reviewedAt == request.time
-    && request.resource.data.title == get(rp(id)).data.snapshotTitle
-    && request.resource.data.yen == get(rp(id)).data.snapshotYen;
-   allow update, delete: if false;
-  }
-  match /{document=**} { allow read, write: if false; }
- }
-}
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title></title>
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="2575.3">
+  <style type="text/css">
+    body {background-color: #0e1a30}
+    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; text-align: center; font: 12.0px 'Hiragino Sans'; color: #dae5f2; -webkit-text-stroke: #dae5f2}
+    p.p3 {margin: 0.0px 0.0px 0.0px 0.0px; font: 14.0px 'Hiragino Sans'; color: #121b2d; -webkit-text-stroke: #121b2d; background-color: #ffffff}
+    p.p4 {margin: 0.0px 0.0px 0.0px 0.0px; font: 14.0px 'Hiragino Mincho ProN'; color: #11213a; -webkit-text-stroke: #11213a; background-color: #ffffff}
+    p.p5 {margin: 0.0px 0.0px 0.0px 0.0px; text-align: center; font: 12.0px 'Hiragino Sans'; color: #ffffff; -webkit-text-stroke: #ffffff; background-color: #97a7bd}
+    p.p6 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px 'Hiragino Sans'; color: #144296; -webkit-text-stroke: #144296; background-color: #e5eeff}
+    p.p7 {margin: 0.0px 0.0px 0.0px 0.0px; font: 15.0px 'Hiragino Sans'; color: #121b2d; -webkit-text-stroke: #121b2d}
+    p.p8 {margin: 0.0px 0.0px 0.0px 0.0px; text-align: center; font: 11.0px 'Hiragino Sans'; color: #344359; -webkit-text-stroke: #344359; background-color: #ffffff}
+    p.p9 {margin: 0.0px 0.0px 0.0px 0.0px; font: 13.0px 'Hiragino Sans'; color: #67768a; -webkit-text-stroke: #67768a}
+    p.p10 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px 'Helvetica Neue'; color: #883b0c; -webkit-text-stroke: #883b0c; min-height: 15.0px}
+    p.p11 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px 'Hiragino Sans'; color: #c9d7e8; -webkit-text-stroke: #c9d7e8}
+    span.s1 {font-kerning: none}
+    span.s2 {font: 14.0px Times; font-kerning: none}
+    span.s3 {font: 12.0px 'Helvetica Neue'; font-kerning: none}
+    span.s4 {font-kerning: none; background-color: #ffffff}
+  </style>
+</head>
+<body>
+<h1 style="margin: 0.0px 0.0px 4.0px 0.0px; text-align: center; font: 22.0px 'Hiragino Sans'; color: #ffffff; -webkit-text-stroke: #ffffff"><span class="s1">訪問アラーム設定</span></h1>
+<p class="p2"><span class="s1">開始時刻をタップして複数選択できます</span></p>
+<p class="p3"><span class="s1">終了前の通知</span></p>
+<p class="p4"><span class="s2">1</span><span class="s1">分前</span><span class="s2">2</span><span class="s1">分前</span><span class="s2">3</span><span class="s1">分前</span><span class="s2">4</span><span class="s1">分前</span><span class="s2">5</span><span class="s1">分前</span></p>
+<p class="p5"><span class="s1">アラーム</span><span class="s3">ON</span></p>
+<p class="p6"><span class="s3">0</span><span class="s1">件選択</span></p>
+<p class="p7"><span class="s4">選択内容</span></p>
+<p class="p8"><span class="s1">すべて解除</span></p>
+<p class="p9"><span class="s4">時刻を選択してください</span></p>
+<p class="p10"><span class="s1"></span><br></p>
+<p class="p11"><span class="s1">開始時刻と終了前の時刻を、</span><span class="s3">iPhone</span><span class="s1">の既存アラームから探して</span><span class="s3">ON</span><span class="s1">にします。時計アプリに該当時刻のアラームがない場合、その時刻は</span><span class="s3">ON</span><span class="s1">にできません。ショートカット「訪問アラーム設定」が必要です。</span></p>
+</body>
+</html>

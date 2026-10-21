@@ -1,13 +1,138 @@
-<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#f5f7fb"><title>訪問アラーム設定</title><style>
-*{box-sizing:border-box}body{margin:0;background:#f5f7fb;color:#17253b;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif}.wrap{max-width:800px;margin:auto;padding:14px 12px calc(20px + env(safe-area-inset-bottom))}h1{font-size:22px;margin:5px 0 4px}.sub{font-size:12px;color:#68758a;margin-bottom:12px}.panel{background:white;border-radius:16px;padding:12px;box-shadow:0 2px 12px #18263c0c;margin-bottom:12px}.top{display:flex;align-items:center;justify-content:space-between;gap:8px}.lead{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700}select{font:inherit;border:1px solid #c8d4e4;background:white;border-radius:9px;padding:8px 12px;color:#152d4b}.count{font-size:14px;font-weight:700;color:#135ab6}.columns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.column{min-width:0;border:1px solid #dce5f0;border-radius:12px;overflow:hidden;background:white}.head{background:#e9f0fa;padding:11px 3px;text-align:center;font-size:12px;font-weight:800;white-space:nowrap;letter-spacing:-.5px}.times{height:min(50vh,440px);overflow-y:auto;overscroll-behavior:contain;padding:6px;display:flex;flex-direction:column;gap:6px}.time{border:1px solid #d5dfeb;background:#fff;color:#1d3653;border-radius:9px;padding:12px 0;min-height:43px;font-size:16px;font-weight:700;cursor:pointer;touch-action:manipulation}.time[aria-pressed=true]{background:#1765c1;border-color:#1765c1;color:#fff;box-shadow:0 2px 6px #1765c133}.summary{font-size:13px;line-height:1.65;color:#344860;max-height:145px;overflow:auto;white-space:pre-wrap}.muted{color:#7a899c}.actions{display:flex;gap:8px}.primary{width:100%;border:0;border-radius:12px;padding:15px;background:#1465c8;color:white;font-weight:800;font-size:16px}.primary:disabled{background:#a7b6c9}.secondary{border:1px solid #c7d2e2;background:white;border-radius:12px;padding:10px 13px;font-weight:700;color:#43556c}.note{font-size:12px;color:#697b90;line-height:1.6;margin-top:10px}.warn{font-size:12px;color:#9b4d0b;margin-top:6px}.pill{background:#eaf2ff;color:#1757a7;padding:4px 8px;border-radius:99px;font-size:12px;font-weight:700}@media(max-width:360px){.wrap{padding:10px 7px}.columns{gap:5px}.head{font-size:11px}.times{padding:4px;gap:5px}.time{font-size:14px;padding:11px 0}}
-</style></head><body><main class="wrap"><h1>訪問アラーム設定</h1><div class="sub">開始時刻をタップして複数選択できます</div><section class="panel top"><label class="lead">終了前の通知 <select id="lead"><option value="1">1分前</option><option value="2">2分前</option><option value="3" selected>3分前</option><option value="4">4分前</option><option value="5">5分前</option></select></label><span class="pill" id="count">0件選択</span></section><section class="columns" id="cols"></section><section class="panel" style="margin-top:12px"><div class="top" style="margin-bottom:9px"><strong style="font-size:15px">選択内容</strong><button class="secondary" id="clear">すべて解除</button></div><div class="summary muted" id="summary">時刻を選択してください</div><div class="warn" id="warning"></div></section><button class="primary" id="run" disabled>アラームをONにする</button><div class="note">開始時刻と終了前の時刻を、iPhoneの既存アラームから探してONにします。時計アプリに該当時刻のアラームがない場合、その時刻はONにできません。ショートカット「訪問アラーム設定」が必要です。</div></main><script>
-const groups=[
-{name:'身01',duration:14,times:'1:00,1:15,1:30,1:45,2:00,2:15,4:30,4:45,5:00,5:15,5:30,5:45,6:00,6:15,6:30,6:45,7:00,7:15,7:30,7:45,8:15,8:30,8:45,9:00,9:15,9:30,9:45,10:00,10:15,10:30,10:45,11:00,11:15,11:30,11:45,12:30,12:45,13:00,13:15,13:30,13:45,14:00,14:15,14:30,14:45,15:00,15:15,15:30,15:45,16:00,16:15,16:30,16:45,17:30,17:45,18:00,18:15,18:30,18:45,19:00,19:15,19:30,19:45,20:00,20:15,20:30,20:45,21:00,21:15,21:30,21:45,22:00,22:15,22:30,22:45,23:00,23:15,23:30,23:45'.split(',')},
-{name:'身1生活2',duration:29,times:'9:00,9:30,10:00,10:30,13:00,13:30,14:00,14:30,15:00,15:30'.split(',')},
-{name:'身2生1',duration:59,times:'9:00,10:00,11:00,13:00,14:00,15:00'.split(',')}];
-const chosen=new Set();const cols=document.getElementById('cols');const lead=document.getElementById('lead');const fmt=m=>`${String(Math.floor(((m%1440)+1440)%1440/60)).padStart(2,'0')}:${String(((m%60)+60)%60).padStart(2,'0')}`;const mins=s=>{let [h,m]=s.split(':').map(Number);return h*60+m};
-groups.forEach((g,gi)=>{let col=document.createElement('div');col.className='column';let head=document.createElement('div');head.className='head';head.textContent=g.name;col.append(head);let times=document.createElement('div');times.className='times';g.times.forEach(t=>{let b=document.createElement('button');b.className='time';b.type='button';b.textContent=t;b.setAttribute('aria-pressed','false');b.onclick=()=>{let k=gi+'|'+t;if(chosen.has(k))chosen.delete(k);else chosen.add(k);b.setAttribute('aria-pressed',String(chosen.has(k)));update()};times.append(b)});col.append(times);cols.append(col)});
-function selection(){return [...chosen].map(k=>{let [i,t]=k.split('|');let g=groups[+i];return {group:g.name,start:t,startMinutes:mins(t),end:fmt(mins(t)+g.duration-(Number(lead.value)-1)),duration:g.duration}}).sort((a,b)=>a.startMinutes-b.startMinutes||a.group.localeCompare(b.group,'ja'))}
-function update(){let s=selection();document.getElementById('count').textContent=s.length+'件選択';document.getElementById('run').disabled=!s.length;let summary=document.getElementById('summary');summary.classList.toggle('muted',!s.length);summary.textContent=s.length?s.map(x=>`${x.group}　${x.start} → ${x.end}`).join('\n'):'時刻を選択してください';let all=s.flatMap(x=>[fmt(x.startMinutes),x.end]);let unique=new Set(all);document.getElementById('warning').textContent=unique.size<all.length?`※同じ時刻のアラームは重複を除いてONにします（${unique.size}時刻）。`:''}
-lead.onchange=update;document.getElementById('clear').onclick=()=>{chosen.clear();document.querySelectorAll('.time[aria-pressed=true]').forEach(b=>b.setAttribute('aria-pressed','false'));update()};document.getElementById('run').onclick=()=>{let s=selection();if(!s.length)return;let times=[...new Set(s.flatMap(x=>[fmt(x.startMinutes),x.end]))];let url='shortcuts://run-shortcut?name='+encodeURIComponent('訪問アラーム設定')+'&input=text&text='+encodeURIComponent(times.join('\n'));location.href=url};update();
-</script></body></html>
+rules_version = '2';
+service cloud.firestore {
+ match /databases/{database}/documents {
+  function signedIn() { return request.auth != null; }
+  function child() { return signedIn() && request.auth.uid == '6XCdcBW1MxgaYgi2xXcZg3DGoas1'; }
+  function parent() { return signedIn() && request.auth.uid in ['cNQE2WSHARfRUsxB0T78wiBtD9d2','pkdwX68z49QJpqFPCdJHLHeAZEG2']; }
+  function family() { return child() || parent(); }
+  function mp(id) { return /databases/$(database)/documents/missions/$(id); }
+  function rp(id) { return /databases/$(database)/documents/requests/$(id); }
+  function lp(id) { return /databases/$(database)/documents/ledger/$(id); }
+  function cp(id) { return /databases/$(database)/documents/claimCounters/$(id); }
+  // Japan-local calendar day. 1970-01-01 was Thursday (4).
+  function localTime() { return request.time + duration.value(9, 'h'); }
+  function dayKey() {
+    return string(localTime().year()) + '-' + string(localTime().month()) + '-' + string(localTime().day());
+  }
+  // Firestore Timestamp.dayOfWeek(): Sunday=1, ... Saturday=7.
+  function weekday() { return localTime().dayOfWeek() - 1; }
+  function counterId(missionId, scheduleType) {
+    return scheduleType == 'once' ? missionId + '_once' : missionId + '_' + dayKey();
+  }
+  function eligible(m) {
+    return m.active == true &&
+      (m.scheduleType != 'weekdays' || weekday() in m.weekdays);
+  }
+  function limit(m) { return m.scheduleType == 'once' ? 1 : m.dailyLimit; }
+  function validRequest(id, d) {
+    return d.keys().hasOnly(['missionId','childUid','status','createdAt','snapshotTitle','snapshotYen','claimDay','claimDayNumber','counterId','slot'])
+      && d.keys().hasAll(['missionId','childUid','status','createdAt','snapshotTitle','snapshotYen','claimDay','claimDayNumber','counterId','slot'])
+      && d.childUid == request.auth.uid && d.status == 'pending'
+      && d.createdAt == request.time
+      && d.missionId is string && d.missionId.size() > 0 && d.missionId.size() <= 128
+      && exists(mp(d.missionId)) && eligible(get(mp(d.missionId)).data)
+      && d.snapshotTitle == get(mp(d.missionId)).data.title
+      && d.snapshotYen == get(mp(d.missionId)).data.yen
+      && d.claimDayNumber is int
+      && d.claimDay == dayKey()
+      && d.counterId == counterId(d.missionId, get(mp(d.missionId)).data.scheduleType)
+      && d.slot is int && d.slot >= 1 && d.slot <= limit(get(mp(d.missionId)).data)
+      && id == d.counterId + '_' + string(d.slot)
+      && getAfter(cp(d.counterId)).data.count == d.slot
+      && getAfter(cp(d.counterId)).data.lastRequestId == id;
+  }
+  match /missions/{id} {
+   allow read: if family();
+   allow create: if parent()
+    && request.resource.data.keys().hasOnly(['title','yen','scheduleType','weekdays','dailyLimit','active','createdAt','updatedAt','createdBy'])
+    && request.resource.data.keys().hasAll(['title','yen','scheduleType','weekdays','dailyLimit','active','createdAt','updatedAt','createdBy'])
+    && request.resource.data.title is string && request.resource.data.title.size() > 0 && request.resource.data.title.size() <= 80
+    && request.resource.data.yen is int && request.resource.data.yen >= 0 && request.resource.data.yen <= 100000
+    && request.resource.data.scheduleType in ['daily','weekdays','once','special']
+    && request.resource.data.weekdays is list && request.resource.data.weekdays.size() <= 7
+    && request.resource.data.weekdays.hasOnly([0,1,2,3,4,5,6])
+    && (request.resource.data.scheduleType != 'weekdays' || request.resource.data.weekdays.size() > 0)
+    && request.resource.data.dailyLimit is int && request.resource.data.dailyLimit >= 1 && request.resource.data.dailyLimit <= 10
+    && request.resource.data.active == true && request.resource.data.createdBy == request.auth.uid
+    && request.resource.data.createdAt == request.time && request.resource.data.updatedAt == request.time;
+   allow update: if parent() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title','yen','scheduleType','weekdays','dailyLimit','active','updatedAt'])
+    && request.resource.data.title is string && request.resource.data.title.size() > 0 && request.resource.data.title.size() <= 80
+    && request.resource.data.yen is int && request.resource.data.yen >= 0 && request.resource.data.yen <= 100000
+    && request.resource.data.scheduleType in ['daily','weekdays','once','special']
+    && request.resource.data.weekdays is list && request.resource.data.weekdays.size() <= 7
+    && request.resource.data.weekdays.hasOnly([0,1,2,3,4,5,6])
+    && (request.resource.data.scheduleType != 'weekdays' || request.resource.data.weekdays.size() > 0)
+    && request.resource.data.dailyLimit is int && request.resource.data.dailyLimit >= 1 && request.resource.data.dailyLimit <= 10
+    && request.resource.data.active is bool && request.resource.data.updatedAt == request.time;
+   allow delete: if false;
+  }
+  match /claimCounters/{id} {
+   allow read: if family();
+   allow create: if child()
+    && request.resource.data.keys().hasOnly(['missionId','childUid','dayNumber','count','lastRequestId'])
+    && request.resource.data.keys().hasAll(['missionId','childUid','dayNumber','count','lastRequestId'])
+    && request.resource.data.childUid == request.auth.uid
+    && request.resource.data.missionId is string && exists(mp(request.resource.data.missionId))
+    && request.resource.data.dayNumber is int
+    && id == counterId(request.resource.data.missionId, get(mp(request.resource.data.missionId)).data.scheduleType)
+    && eligible(get(mp(request.resource.data.missionId)).data)
+    && request.resource.data.count is int
+    && request.resource.data.count >= 1
+    && request.resource.data.count <= limit(get(mp(request.resource.data.missionId)).data)
+    && request.resource.data.lastRequestId == id + '_' + string(request.resource.data.count)
+    && getAfter(rp(request.resource.data.lastRequestId)).data.childUid == request.auth.uid
+    && getAfter(rp(request.resource.data.lastRequestId)).data.missionId == request.resource.data.missionId
+    && getAfter(rp(request.resource.data.lastRequestId)).data.counterId == id
+    && getAfter(rp(request.resource.data.lastRequestId)).data.slot == request.resource.data.count
+    && request.resource.data.count == 1;
+   allow update: if child()
+    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['count','lastRequestId'])
+    && request.resource.data.count == resource.data.count + 1
+    && request.resource.data.count <= limit(get(mp(resource.data.missionId)).data)
+    && eligible(get(mp(resource.data.missionId)).data)
+    && id == counterId(resource.data.missionId, get(mp(resource.data.missionId)).data.scheduleType)
+    && request.resource.data.lastRequestId == id + '_' + string(request.resource.data.count)
+    && getAfter(rp(request.resource.data.lastRequestId)).data.childUid == request.auth.uid
+    && getAfter(rp(request.resource.data.lastRequestId)).data.missionId == resource.data.missionId
+    && getAfter(rp(request.resource.data.lastRequestId)).data.counterId == id
+    && getAfter(rp(request.resource.data.lastRequestId)).data.slot == request.resource.data.count;
+   allow delete: if false;
+  }
+  match /requests/{id} {
+   allow read: if family();
+   allow create: if child() && validRequest(id, request.resource.data);
+   allow update: if parent() && resource.data.status == 'pending'
+    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','reviewedAt','reviewedBy'])
+    && request.resource.data.keys().hasAll(['missionId','childUid','status','createdAt','snapshotTitle','snapshotYen','reviewedAt','reviewedBy'])
+    && request.resource.data.reviewedBy == request.auth.uid && request.resource.data.reviewedAt == request.time
+    && (request.resource.data.status == 'rejected' || (request.resource.data.status == 'approved'
+      && getAfter(lp(id)).data.requestId == id
+      && getAfter(lp(id)).data.missionId == resource.data.missionId
+      && getAfter(lp(id)).data.title == resource.data.snapshotTitle
+      && getAfter(lp(id)).data.yen == resource.data.snapshotYen
+      && getAfter(lp(id)).data.createdBy == request.auth.uid
+      && getAfter(lp(id)).data.createdAt == request.time));
+   allow delete: if false;
+  }
+  match /ledger/{id} {
+   allow read: if family();
+   allow create: if parent()
+    && request.resource.data.keys().hasOnly(['type','requestId','missionId','title','yen','createdAt','createdBy'])
+    && request.resource.data.keys().hasAll(['type','requestId','missionId','title','yen','createdAt','createdBy'])
+    && request.resource.data.type == 'mission' && request.resource.data.requestId == id
+    && request.resource.data.missionId is string
+    && request.resource.data.title is string && request.resource.data.title.size() > 0 && request.resource.data.title.size() <= 80
+    && request.resource.data.yen is int && request.resource.data.yen >= 0 && request.resource.data.yen <= 100000
+    && request.resource.data.createdBy == request.auth.uid && request.resource.data.createdAt == request.time
+    && exists(rp(id)) && get(rp(id)).data.status == 'pending'
+    && get(rp(id)).data.missionId == request.resource.data.missionId
+    && getAfter(rp(id)).data.status == 'approved'
+    && getAfter(rp(id)).data.reviewedBy == request.auth.uid
+    && getAfter(rp(id)).data.reviewedAt == request.time
+    && request.resource.data.title == get(rp(id)).data.snapshotTitle
+    && request.resource.data.yen == get(rp(id)).data.snapshotYen;
+   allow update, delete: if false;
+  }
+  match /{document=**} { allow read, write: if false; }
+ }
+}
